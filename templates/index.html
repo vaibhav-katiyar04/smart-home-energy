@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartHome Energy AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #060b14;
+      --surface: #0d1627;
+      --surface2: #111d35;
+      --accent: #00e5ff;
+      --accent2: #7c4dff;
+      --accent3: #00e676;
+      --warn: #ff6b35;
+      --text: #e8f4f8;
+      --muted: #4a6080;
+      --border: rgba(0,229,255,0.12);
+      --glow: 0 0 20px rgba(0,229,255,0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* Header */
+    header {
+      padding: 24px 0 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,230,118,0.1);
+      border: 1px solid rgba(0,230,118,0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent3);
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--accent3);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* Sensor Cards Row */
+    .sensor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+
+    .sensor-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.6s ease both;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .sensor-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--glow);
+    }
+
+    .sensor-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .sensor-card:nth-child(2)::before { background: linear-gradient(90deg, #7c4dff, #e040fb); }
+    .sensor-card:nth-child(3)::before { background: linear-gradient(90deg, #00e676, #00bcd4); }
+    .sensor-card:nth-child(4)::before { background: linear-gradient(90deg, #ff6b35, #ffd740); }
+    .sensor-card:nth-child(5)::before { background: linear-gradient(90deg, #00bcd4, #00e5ff); }
+    .sensor-card:nth-child(6)::before { background: linear-gradient(90deg, #69f0ae, #00e676); }
+
+    .sensor-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 10px;
+    }
+
+    .sensor-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .sensor-card:nth-child(2) .sensor-value { color: #b388ff; }
+    .sensor-card:nth-child(3) .sensor-value { color: var(--accent3); }
+    .sensor-card:nth-child(4) .sensor-value { color: var(--warn); }
+    .sensor-card:nth-child(5) .sensor-value { color: #4dd0e1; }
+    .sensor-card:nth-child(6) .sensor-value { color: #69f0ae; }
+
+    .sensor-unit {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .sensor-icon {
+      position: absolute;
+      top: 16px; right: 16px;
+      font-size: 1.4rem;
+      opacity: 0.4;
+    }
+
+    /* Alert banner */
+    .alert-banner {
+      background: rgba(255,107,53,0.12);
+      border: 1px solid rgba(255,107,53,0.4);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .alert-banner.show { display: flex; }
+    .alert-banner span { font-weight: 600; color: var(--warn); }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Predict Form */
+    .predict-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-group label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--accent);
+    }
+
+    .form-group select option { background: var(--surface2); }
+
+    .predict-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: opacity 0.2s, transform 0.2s;
+      margin-top: 4px;
+    }
+
+    .predict-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    .prediction-result {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .prediction-result.show { display: block; }
+
+    .pred-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .pred-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .pred-status { font-size: 0.85rem; margin-top: 8px; font-weight: 600; }
+
+    /* Bottom grid */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 700px) {
+      .bottom-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .stat-item-label { font-size: 0.78rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+    .stat-item-value { font-size: 1rem; font-weight: 700; color: var(--accent3); font-family: 'Space Mono', monospace; }
+
+    /* Automation rules */
+    .rules-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+
+    .rule-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent3);
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--accent3);
+    }
+
+    .rule-dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 20px 0;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      border-top: 1px solid var(--border);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sensor-card:nth-child(1) { animation-delay: 0.05s; }
+    .sensor-card:nth-child(2) { animation-delay: 0.1s; }
+    .sensor-card:nth-child(3) { animation-delay: 0.15s; }
+    .sensor-card:nth-child(4) { animation-delay: 0.2s; }
+    .sensor-card:nth-child(5) { animation-delay: 0.25s; }
+    .sensor-card:nth-child(6) { animation-delay: 0.3s; }
+
+    canvas { max-height: 220px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <h1>Smart<span>Home</span> Energy AI</h1>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE MONITORING
+    </div>
+  </header>
+
+  <!-- Sensor Cards -->
+  <div class="sensor-grid">
+    <div class="sensor-card">
+      <div class="sensor-icon">🌡️</div>
+      <div class="sensor-label">Temperature</div>
+      <div class="sensor-value" id="temp">--</div>
+      <div class="sensor-unit">°C</div>
+    </div>
+    <div class="sensor-card">
+      <div class="sensor-icon">💧</div>
+      <div class="sensor-label">Humidity</div>
+      <div class="sensor-value" id="humidity">--</div>
+      <div class="sensor-unit">%</div>
+    </div>
+    <div class="sensor-card">
+      <div class="sensor-icon">👥</div>
+      <div class="sensor-label">Occupancy</div>
+      <div class="sensor-value" id="occupancy">--</div>
+      <div class="sensor-unit">persons</div>
+    </div>
+    <div class="sensor-card">
+      <div class="sensor-icon">⚡</div>
+      <div class="sensor-label">Current Load</div>
+      <div class="sensor-value" id="energy">--</div>
+      <div class="sensor-unit">kWh</div>
+    </div>
+    <div class="sensor-card">
+      <div class="sensor-icon">☀️</div>
+      <div class="sensor-label">Renewable</div>
+      <div class="sensor-value" id="renewable">--</div>
+      <div class="sensor-unit">% solar</div>
+    </div>
+    <div class="sensor-card">
+      <div class="sensor-icon">💰</div>
+      <div class="sensor-label">Cost Saved</div>
+      <div class="sensor-value" id="cost">--</div>
+      <div class="sensor-unit">₹ today</div>
+    </div>
+  </div>
+
+  <!-- Alert Banner -->
+  <div class="alert-banner" id="alertBanner">
+    <span>⚠️ ANOMALY DETECTED</span>
+    Energy consumption is 30% above average! Consider turning off unused appliances.
+  </div>
+
+  <!-- Main Grid: Chart + Predict -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-title">⚡ 24-Hour Energy Consumption</div>
+      <canvas id="energyChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">🤖 ML Prediction Engine</div>
+      <div class="predict-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Temperature (°C)</label>
+            <input type="number" id="p_temp" value="25" min="10" max="45"/>
+          </div>
+          <div class="form-group">
+            <label>Humidity (%)</label>
+            <input type="number" id="p_humid" value="50" min="10" max="100"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Occupancy</label>
+            <input type="number" id="p_occ" value="3" min="0" max="10"/>
+          </div>
+          <div class="form-group">
+            <label>Square Footage</label>
+            <input type="number" id="p_sqft" value="1500" min="500" max="5000"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>HVAC</label>
+            <select id="p_hvac">
+              <option value="1">On</option>
+              <option value="0">Off</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Lighting</label>
+            <select id="p_light">
+              <option value="1">On</option>
+              <option value="0">Off</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Renewable Energy (%)</label>
+          <input type="number" id="p_renew" value="10" min="0" max="100"/>
+        </div>
+        <button class="predict-btn" onclick="predict()">⚡ PREDICT ENERGY USAGE</button>
+        <div class="prediction-result" id="predResult">
+          <div class="pred-value" id="predValue">--</div>
+          <div class="pred-label">Predicted kWh</div>
+          <div class="pred-status" id="predStatus"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Grid: Weekly + Automation -->
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="card-title">📅 Weekly Overview</div>
+      <canvas id="weekChart"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">🤖 Automation Rules</div>
+      <div class="rules-list">
+        <div class="rule-item">
+          <div class="rule-dot"></div>
+          Room empty 10+ min → HVAC auto OFF
+        </div>
+        <div class="rule-item">
+          <div class="rule-dot"></div>
+          Daytime + sunny → Switch to solar
+        </div>
+        <div class="rule-item">
+          <div class="rule-dot"></div>
+          Peak hours (5–9 PM) → Reduce load
+        </div>
+        <div class="rule-item">
+          <div class="rule-dot warn"></div>
+          Energy &gt; 30% avg → Send alert
+        </div>
+        <div class="rule-item">
+          <div class="rule-dot"></div>
+          Night mode → Dim lights at 11 PM
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="card-title">📊 Today's Stats</div>
+        <div class="stats-row" id="statsRow">
+          <div class="stat-item">
+            <span class="stat-item-label">Total Usage</span>
+            <span class="stat-item-value" id="totalToday">-- kWh</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-item-label">Peak Day (Week)</span>
+            <span class="stat-item-value" id="peakDay">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-item-label">Weekly Savings</span>
+            <span class="stat-item-value" id="weeklySave">₹ --</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    SmartHome Energy Conservation System &nbsp;|&nbsp; IoT + ML Final Year Project &nbsp;|&nbsp; Built with Flask + XGBoost
+  </footer>
+</div>
+
+<script>
+  let energyChart, weekChart;
+
+  // Init charts
+  function initCharts() {
+    const ctx1 = document.getElementById('energyChart').getContext('2d');
+    energyChart = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Energy (kWh)',
+            data: [],
+            borderColor: '#00e5ff',
+            backgroundColor: 'rgba(0,229,255,0.07)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: '#00e5ff'
+          },
+          {
+            label: 'Renewable (%)',
+            data: [],
+            borderColor: '#00e676',
+            backgroundColor: 'rgba(0,230,118,0.05)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 2,
+            pointBackgroundColor: '#00e676'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#4a6080', font: { family: 'Space Mono', size: 10 } } } },
+        scales: {
+          x: { ticks: { color: '#4a6080', font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(0,229,255,0.05)' } },
+          y: { ticks: { color: '#4a6080', font: { family: 'Space Mono', size: 9 } }, grid: { color: 'rgba(0,229,255,0.05)' } }
+        }
+      }
+    });
+
+    const ctx2 = document.getElementById('weekChart').getContext('2d');
+    weekChart = new Chart(ctx2, {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'kWh', data: [], backgroundColor: 'rgba(124,77,255,0.6)', borderColor: '#7c4dff', borderWidth: 1, borderRadius: 6 }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#4a6080', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(0,229,255,0.05)' } },
+          y: { ticks: { color: '#4a6080', font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(0,229,255,0.05)' } }
+        }
+      }
+    });
+  }
+
+  // Fetch live data
+  async function fetchLiveData() {
+    try {
+      const res = await fetch('/api/live-data');
+      const data = await res.json();
+      const c = data.current;
+
+      document.getElementById('temp').textContent = c.temperature;
+      document.getElementById('humidity').textContent = c.humidity;
+      document.getElementById('occupancy').textContent = c.occupancy;
+      document.getElementById('energy').textContent = c.energy;
+      document.getElementById('renewable').textContent = c.renewable;
+      document.getElementById('cost').textContent = c.cost_saved;
+      document.getElementById('totalToday').textContent = c.total_today + ' kWh';
+
+      // Anomaly alert
+      document.getElementById('alertBanner').classList.toggle('show', c.anomaly);
+
+      // Update chart
+      energyChart.data.labels = data.hourly.map(h => h.hour);
+      energyChart.data.datasets[0].data = data.hourly.map(h => h.energy);
+      energyChart.data.datasets[1].data = data.hourly.map(h => h.renewable);
+      energyChart.update();
+    } catch(e) { console.error('Live data error:', e); }
+  }
+
+  // Fetch weekly stats
+  async function fetchStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      weekChart.data.labels = data.days;
+      weekChart.data.datasets[0].data = data.weekly;
+      weekChart.update();
+      document.getElementById('peakDay').textContent = data.peak_day;
+      document.getElementById('weeklySave').textContent = '₹ ' + data.savings_week;
+    } catch(e) { console.error('Stats error:', e); }
+  }
+
+  // Predict
+  async function predict() {
+    const body = {
+      hour: new Date().getHours(),
+      temperature: parseFloat(document.getElementById('p_temp').value),
+      humidity: parseFloat(document.getElementById('p_humid').value),
+      occupancy: parseInt(document.getElementById('p_occ').value),
+      square_footage: parseFloat(document.getElementById('p_sqft').value),
+      hvac: parseInt(document.getElementById('p_hvac').value),
+      lighting: parseInt(document.getElementById('p_light').value),
+      renewable: parseFloat(document.getElementById('p_renew').value),
+      holiday: 0,
+      month: new Date().getMonth() + 1,
+      day_of_week: new Date().getDay()
+    };
+
+    try {
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      document.getElementById('predValue').textContent = data.prediction;
+      document.getElementById('predStatus').textContent = data.status;
+      document.getElementById('predStatus').style.color = data.anomaly ? '#ff6b35' : '#00e676';
+      document.getElementById('predResult').classList.add('show');
+    } catch(e) { alert('Prediction failed: ' + e); }
+  }
+
+  // Init
+  initCharts();
+  fetchLiveData();
+  fetchStats();
+
+  // Refresh live data every 10 seconds
+  setInterval(fetchLiveData, 10000);
+</script>
+</body>
+</html>
